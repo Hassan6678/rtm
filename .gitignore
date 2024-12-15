@@ -139,6 +139,7 @@ venv.bak/
 
 # mkdocs documentation
 /site
+/aleem_javed
 
 # mypy
 .mypy_cache/
