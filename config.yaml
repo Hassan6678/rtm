@@ -1,0 +1,29 @@
+process:
+  debug: 0
+  multiprocessing: 1
+  logs: logs
+
+paths:
+  mymodules: mymodules
+  data:
+    geo: data/geo
+    sales: data/sales
+    other: data/other
+    output: output
+
+analysis:
+  company: bat
+  country: uk
+  city: all # if "all try to compute stockouts for all the cities in data/sales folder"
+  exclude: [] # city name to exclude
+
+  date:
+    current_month: 2024-09-30 #iso_format (%Y-%m-%d), the month we have to do analysis for
+    
+  data:
+    unit: quantity
+    days: 3
+
+geo:
+  tif:
+    scale: 1.0
