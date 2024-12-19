@@ -20,8 +20,8 @@ def setup(dir, add_popuatlion=False, add_sec=True,):
     boundary.add_sec_data(sec)
     boundary.add_population_data(ptif)
 
-    mta_file = dir / "kmls" / "mta.kml"
-    mta = MTA(file=mta_file) if mta_file.exists() else None
+    # mta_file = dir / "kmls" / "mta.kml"
+    # mta = MTA(file=mta_file) if mta_file.exists() else None
     # mta.add_sec_data(sec)
     # mta.add_population_data(ptif)
 
@@ -30,15 +30,15 @@ def setup(dir, add_popuatlion=False, add_sec=True,):
     # whitespace.add_sec_data(sec)
     # whitespace.add_population_data(ptif)
 
-    routes = Routes(file=dir / "kmls" / "routes.kml")
-    routes.add_sec_data(sec)
-    routes.add_population_data(ptif)
+    # routes = Routes(file=dir / "kmls" / "routes.kml")
+    # routes.add_sec_data(sec)
+    # routes.add_population_data(ptif)
 
     return (
         boundary,
-        mta,
+        # mta,
         ptif,
-        routes,
+        # routes,
         sec,
         whitespace,
     )
