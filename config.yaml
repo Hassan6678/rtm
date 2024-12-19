@@ -3,27 +3,19 @@ process:
   multiprocessing: 1
   logs: logs
 
-paths:
-  mymodules: mymodules
-  data:
-    geo: data/geo
-    sales: data/sales
-    other: data/other
-    output: output
-
 analysis:
   company: bat
-  country: uk
-  city: all # if "all try to compute stockouts for all the cities in data/sales folder"
-  exclude: [] # city name to exclude
+  country: czech
+  area: all # if "all try to compute analysis for all the areas in data folder"
+  exclude: [] # area name to exclude
+
+paths:
+  mymodules: mymodules
+  "{{ company }}":
+    "{{ country }}":
+      data: "projects/{{ company }}/{{ country }}/data"
+      output: "projects/{{ company }}/{{ country }}/output"
+      raw: "projects/{{ company }}/{{ country }}/raw"
 
   date:
     current_month: 2024-09-30 #iso_format (%Y-%m-%d), the month we have to do analysis for
-    
-  data:
-    unit: quantity
-    days: 3
-
-geo:
-  tif:
-    scale: 1.0

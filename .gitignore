@@ -141,6 +141,7 @@ venv.bak/
 /site
 /aleem_javed
 /extra
+/projects
 
 # mypy
 .mypy_cache/
