@@ -5,17 +5,15 @@ process:
 analysis:
   company: bat
   country: czech
-  area: all # if "all try to compute analysis for all the areas in data folder"
+  area: 6731dc27c09ec86f8546f091 # if "all try to compute analysis for all the areas in data folder"
   exclude: [] # area name to exclude
 
 paths:
   mymodules: mymodules
-  "{{ company }}":
-    "{{ country }}":
-      data: "projects/{{ company }}/{{ country }}/data"
-      output: "projects/{{ company }}/{{ country }}/output"
-      raw: "projects/{{ company }}/{{ country }}/raw"
-      logs: "projects/{{ company }}/{{ country }}/logs"
+  data: "projects/{{ company }}/{{ country }}/data"
+  output: "projects/{{ company }}/{{ country }}/output"
+  raw: "projects/{{ company }}/{{ country }}/raw"
+  logs: "projects/{{ company }}/{{ country }}/logs"
 
   date:
     current_month: 2024-09-30 #iso_format (%Y-%m-%d), the month we have to do analysis for
