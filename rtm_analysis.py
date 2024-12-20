@@ -8,10 +8,23 @@ from time import sleep
 
 import pandas as pd
 import numpy as np
-from tqdm import tqdm
+
 import yaml
 
-def calculate_SEC(): pass
+def calculate_SEC(SEC_data, p:Path):
+    output_dict = []
+    for i in SEC_data:
+        coordinates = SEC_data[i]['coordinates']
+        output_dict.append({
+            "coordinates": [
+                {"lat": i[1], "lng": i[0]} for i in coordinates
+            ],
+            "sec": SEC_data[i]['folder'],
+            "population" : SEC_data[i]['population'],
+            "area": 0,
+        })
+    utils.to_json(output_dict, p / "sec_polygons.json")
+
 def calculate_population_density(): pass
 def calculate_whitespace(): pass
 def make_customer_mapping(): pass
@@ -35,18 +48,18 @@ if __name__ == "__main__":
     country = config["analysis"]["country"]
     area_name = config["analysis"]["area"]
 
-    geo_dir = Path(config["paths"][company][country]['data']).resolve() / area_name
+    geo_dir = Path(config["paths"]['data']).resolve() / area_name
 
-    output_folder = Path(config["paths"][company][country]['output']).resolve() / area_name
+    output_folder = Path(config["paths"]['output']).resolve() / area_name
     output_folder.mkdir(parents=True, exist_ok=True)
 
-    sec_file = output_folder / "sec_polygons.json"
-    population_density_file = output_folder / "population_density.json"
+    # sec_file = output_folder / "sec_polygons.json"
+    # population_density_file = output_folder / "population_density.json"
 
-    if sec_file.exists() and population_density_file.exists():
-        print("From Disk: SEC & Population density Loaded & Saved Successfully !!!")
-        # gracefully closing the script
-        sys.exit()
+    # if sec_file.exists() and population_density_file.exists():
+    #     print("From Disk: SEC & Population density Loaded & Saved Successfully !!!")
+    #     # gracefully closing the script
+    #     sys.exit()
 
     population_scale = float(config["geo"]["tif"]["scale"])
 
@@ -62,5 +75,6 @@ if __name__ == "__main__":
     jobs = []
     pipe_list = []
 
-     
+    calculate_SEC(sec.to_dict(), output_folder)
+
     print("\n... ||= FINISHED =|| ...\n")
