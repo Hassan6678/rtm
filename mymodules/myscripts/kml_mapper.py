@@ -15,6 +15,7 @@ def setup(dir, add_popuatlion=False, add_sec=True,):
 
     ptif = PopulationTif(file=dir / "tifs" / "population.tif")
     sec = SEC(file=dir / "kmls" / "sec.kml", ptif=ptif)
+    sec.add_population_data(ptif)
 
     boundary = Boundary(file=dir / "kmls" / "boundary.kml")
     boundary.add_sec_data(sec)
@@ -27,8 +28,8 @@ def setup(dir, add_popuatlion=False, add_sec=True,):
 
     whitespace_file = dir / "kmls" / "whitespace.kml"
     whitespace = WhiteSpace(file=whitespace_file) if whitespace_file.exists() else None
-    # whitespace.add_sec_data(sec)
-    # whitespace.add_population_data(ptif)
+    whitespace.add_sec_data(sec)
+    whitespace.add_population_data(ptif)
 
     # routes = Routes(file=dir / "kmls" / "routes.kml")
     # routes.add_sec_data(sec)
