@@ -25,11 +25,11 @@ area_name = config["analysis"]["area"]
 config['paths'] = replace_placeholders(config['paths'], company, country)
 
 # logs folder
-logs_dir = Path(config["paths"][company][country]["logs"]).resolve()
+logs_dir = Path(config["paths"]["logs"]).resolve()
 logs_dir.mkdir(parents=True, exist_ok=True)
 
 if area_name == "all":
-    data_directory = Path(config["paths"][company][country]['data'])
+    data_directory = Path(config["paths"]['data'])
     exclude_cities = config["analysis"]["exclude"]
 
     for _id in data_directory.glob("**/boundary.kml"):
@@ -51,7 +51,7 @@ if area_name == "all":
 
         print(f"Finished analysis for {area_name.capitalize()}\n")
 else: 
-    data_directory = Path(config["paths"][company][country]['data'])
+    data_directory = Path(config["paths"]['data'])
 
     config_yaml = yaml.dump(config, default_flow_style=False)
 
