@@ -16,7 +16,7 @@ paths:
   logs: "projects/{{ company }}/{{ country }}/logs"
 
   date:
-    current_month: 2024-09-30 #iso_format (%Y-%m-%d), the month we have to do analysis for
+    current_month: 2024-12-31 #iso_format (%Y-%m-%d), the month we have to do analysis for
     
 geo:
   tif:
