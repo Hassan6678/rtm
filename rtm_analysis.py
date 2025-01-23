@@ -61,7 +61,7 @@ if __name__ == "__main__":
     # analysis configuration file
     config = yaml.safe_load(sys.argv[1],)
 
-    # add my module to the path variable
+    # add my module to the path variables
     # sys.path.append(Path(config["paths"]["mymodules"]).resolve())
 
     # from mymodules.aisight.naqsha import *
