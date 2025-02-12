@@ -30,6 +30,7 @@ def calculate_population_density(boundary,ptif,p:Path):
     TIF_data = ptif.to_dict()
     output_dict = []
     for i in TIF_data:
+        x, y = TIF_data[i]['position']
         coordinates = TIF_data[i]['coordinates']
         population = TIF_data[i]['population']
         pixel_poly = Polygon(coordinates)
@@ -43,6 +44,7 @@ def calculate_population_density(boundary,ptif,p:Path):
         if population_pct > 100: color = f'ff0000ff'
         else: color = f'ff0000{color_code}'
         output_dict.append({
+            "id" : f"{x}_{y}",
             "coordinates": [
                 {"lat": i[1], "lng": i[0]} for i in coordinates
             ],
@@ -53,7 +55,52 @@ def calculate_population_density(boundary,ptif,p:Path):
     utils.to_json(output_dict, p / "population_density.json")
     print("Population Density Completed .")
 
-def calculate_whitespace(): pass
+def calculate_whitespace(config, ws_data, area_name, p:Path):
+    customers_file = Path(config["paths"]["data"]) / area_name / "customers" / "customers.csv"
+    census_file = Path(config["paths"]["data"]) / area_name / "customers" / "census_customers.csv"
+
+    customers = pd.read_csv(customers_file)
+    census = pd.read_csv(census_file)
+
+    output_json = {
+        "locations": [],
+    }
+    for i in ws_data:
+        coordinates = ws_data[i]['coordinates']
+        id = ws_data[i]['id']
+        sec = ws_data[i]['sec']
+        population = ws_data[i]['population']
+        address = ws_data[i]['address']
+        censusCount = census[census["whitespace"] == id].customer_code.nunique()
+        outletCount = customers[customers["whitespace"] == id].customer_code.nunique()
+
+        flag = "EMPTY"
+        if outletCount > 0:
+            if outletCount > censusCount:
+                flag = "COVERED"
+            elif censusCount > 0:
+                flag = "SA Census"
+        
+        output_json["locations"].append({
+            "_id": id,
+            "boundary": {
+                "polygon": coordinates
+            },
+            "data": {
+                "flag": flag,
+                "stores": outletCount,
+                "census_store": censusCount,
+                "address": address,
+                "population": round(population),
+                "household" : population//6.5,
+                "SEC": sec,
+            }
+        })
+    
+    utils.to_json(output_json, p / "whitespace_data.json")
+    print("Whitespace Calculation Completed .")
+
+
 def make_customer_mapping(): pass
 
 
@@ -104,5 +151,6 @@ if __name__ == "__main__":
 
     calculate_SEC(sec.to_dict(), output_folder)
     calculate_population_density(boundary,ptif,output_folder)
+    calculate_whitespace(config, whitespace.to_dict(), area_name, output_folder)
 
     print("\n... ||= FINISHED =|| ...\n")
