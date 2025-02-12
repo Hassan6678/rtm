@@ -26,7 +26,7 @@ def setup(dir, add_popuatlion=False, add_sec=True,):
     # mta.add_sec_data(sec)
     # mta.add_population_data(ptif)
 
-    whitespace_file = dir / "kmls" / "whitespace.kml"
+    whitespace_file = dir / "kmls" / "whitespace_.kml"
     whitespace = WhiteSpace(file=whitespace_file) if whitespace_file.exists() else None
     whitespace.add_sec_data(sec)
     whitespace.add_population_data(ptif)
