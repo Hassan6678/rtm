@@ -100,8 +100,9 @@ def calculate_whitespace(config, ws_data, area_name, p:Path):
     utils.to_json(output_json, p / "whitespace_data.json")
     print("Whitespace Calculation Completed .")
 
-
 def make_customer_mapping(): pass
+
+def make_sec_grid(): pass
 
 
 if __name__ == "__main__":
