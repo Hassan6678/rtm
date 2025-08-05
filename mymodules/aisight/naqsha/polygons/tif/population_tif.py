@@ -2,6 +2,8 @@ from tqdm import tqdm
 from osgeo import gdal
 from shapely.strtree import STRtree
 
+from shapely.geometry import Point
+
 from ..base import PixelPolygon, Coordinates
 
 
@@ -125,3 +127,27 @@ class PopulationTif:
             }
 
         return pixel_recrod
+
+    def get_point_population(self, p):
+        """
+        Returns the population value of the grid/box where the point falls.
+        If the point doesn't fall in any populated area, returns the population of the nearest grid.
+
+        Args:
+            point: A shapely Point object representing the location to check
+
+        Returns:
+            float: The population value at that point or from the nearest grid
+        """
+        p = p if isinstance(p, Point) else Point(p)
+        # Query the STR-tree for potential intersecting pixels
+        intersecting_pixels = self._str_tree.query(p)
+
+        # Check if the p falls within any of the pixels
+        for pxl_poly in intersecting_pixels:
+            if pxl_poly.contains(p):
+                return pxl_poly.x_population
+
+        # If p doesn't fall in any pixel, find the nearest pixel
+        nearest_pixel = self._str_tree.nearest(p)
+        return nearest_pixel.x_population
