@@ -108,3 +108,19 @@ def copy_na_attributes(obj_from, obj_to):
             setattr(obj_to, attr_n, attr_v)
 
     return obj_to
+
+
+def get_intersecting_polygons(poly, sapolys):
+    overlapping_polygons = []
+    
+    # intersecting polygon == ip, o_poly => overlapping polygon
+    for ip in sapolys._str_tree.query(poly): 
+        o_poly = ip.intersection(poly)
+        if not o_poly.is_empty:
+            if o_poly.geom_type == 'MultiPolygon':
+                for so_poly in o_poly.geoms:
+                    overlapping_polygons.append(copy_na_attributes(ip, so_poly))
+            else:
+                overlapping_polygons.append(copy_na_attributes(ip, o_poly))
+        
+    return overlapping_polygons
