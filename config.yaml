@@ -1,11 +1,12 @@
 process:
   debug: 0
   multiprocessing: 1
+  max_processes: 8  # Adjust based on your system
 
 analysis:
   company: bat
-  country: czech
-  area: 6731dc27c09ec86f8546f091 # if "all try to compute analysis for all the areas in data folder"
+  country: denmark
+  area: all # if "all try to compute analysis for all the areas in data folder"
   exclude: [] # area name to exclude
 
 paths:
@@ -14,6 +15,7 @@ paths:
   output: "projects/{{ company }}/{{ country }}/output"
   raw: "projects/{{ company }}/{{ country }}/raw"
   logs: "projects/{{ company }}/{{ country }}/logs"
+  global_tif: "./tif/landscan-global-2023.tif"  # Global TIF file path
 
   date:
     current_month: 2024-12-31 #iso_format (%Y-%m-%d), the month we have to do analysis for
@@ -21,3 +23,4 @@ paths:
 geo:
   tif:
     scale: 1.0
+    buffer_degrees: 0.1  # Buffer around boundaries for TIF extraction (in degrees)

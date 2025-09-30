@@ -1,9 +1,11 @@
 import numbers
 import sys
+
 import numpy as np
 import pandas as pd
 
-from mymodules.aisight.naqsha import *
+from mymodules.aisight.naqsha import Boundary, SEC, WhiteSpace
+from mymodules.aisight.naqsha.polygons.tif.population_tif import PopulationTif
 
 def setup(dir, add_popuatlion=False, add_sec=True,):
     global ptif
