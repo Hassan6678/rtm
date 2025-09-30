@@ -142,6 +142,7 @@ venv.bak/
 /aleem_javed
 /extra
 /projects
+/tif
 
 # mypy
 .mypy_cache/
