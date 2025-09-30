@@ -14,8 +14,7 @@ from mymodules.utils import replace_placeholders
 from mymodules.aisight.naqsha import SEC, Boundary
 from mymodules.aisight.naqsha.utils import get_intersecting_polygons
 
-# Import tessellation functions from local module
-from tessellation import cluster_kmeans, voronoi_tesselation, post_adjustments, fuzzy_rename_columns
+from .tessellation import cluster_kmeans, voronoi_tesselation, post_adjustments, fuzzy_rename_columns
 
 def make_kml_from_json(json_file: str, config: dict):
     """
@@ -29,7 +28,7 @@ def make_kml_from_json(json_file: str, config: dict):
     
     # Get the data directory from config
     data_dir = Path(config["paths"]["data"])
-    
+
     for polygon in data:
         color = "%06x" % random.randint(0, 0xFFFFFF)
         color = f'99{color}'
@@ -290,38 +289,46 @@ def generate_whitespace_tessellation(config: dict):
     print("Whitespace tessellation processing completed")
 
 
-def main():
+def run_initialization(config_yaml: str):
     """
-    Main function to run the initialization process for RTM analysis.
-    Supports multi-tenant architecture with configurable company and country.
+    Run the complete initialization process for RTM analysis.
+    This function can be called from multiprocessing or for global initialization.
+
+    Args:
+        config_yaml: YAML configuration as string
     """
-    # Load configuration
-    with open("config.yaml", "r") as yf:
-        config = yaml.safe_load(yf)
-    
+    # Parse configuration
+    config = yaml.safe_load(config_yaml)
+
     # Replace placeholders in config paths
     company = config["analysis"]["company"]
     country = config["analysis"]["country"]
     config['paths'] = replace_placeholders(config['paths'], company, country)
-    
-    print(f"Initializing RTM process for {company.upper()} - {country.upper()}")
+
+    area_name = config["analysis"]["area"]
+
+    print(f"Initializing RTM process for {company.upper()} - {country.upper()} - Area: {area_name}")
     print(f"Data directory: {config['paths']['data']}")
     print(f"Raw directory: {config['paths']['raw']}")
-    
-    # Get raw data directory
-    raw_dir = Path(config["paths"]["raw"])
-    raw_dir.mkdir(parents=True, exist_ok=True)
-    
-    # Look for area JSON file in raw directory
-    area_json_files = list(raw_dir.glob("*area*.json"))
-    if area_json_files:
+
+    try:
+        # Get raw data directory
+        raw_dir = Path(config["paths"]["raw"])
+        raw_dir.mkdir(parents=True, exist_ok=True)
+
+        # Look for area JSON file in raw directory
+        area_json_files = list(raw_dir.glob("*area*.json"))
+        if not area_json_files:
+            print(f"No area JSON file found in raw directory for {area_name}")
+            return
+
         area_json_file = area_json_files[0]  # Take the first one found
         print(f"Found area JSON file: {area_json_file}")
-        
+
         # Step 1: Create KML files from JSON
         print("\n=== Step 1: Creating KML files from JSON ===")
         make_kml_from_json(str(area_json_file), config)
-        
+
         # Step 2: Extract SEC data
         print("\n=== Step 2: Extracting SEC data ===")
         # Look for SEC file in raw directory
@@ -332,35 +339,106 @@ def main():
             sec_extraction(str(sec_file), config)
         else:
             print("No SEC file found in raw directory")
-        
+
         # Step 3: Process census and client data
         print("\n=== Step 3: Processing census and client data ===")
         # Look for census and client files
         census_files = list(raw_dir.glob("*census*.csv")) + list(raw_dir.glob("*CENSUS*.csv"))
         client_files = list(raw_dir.glob("*client*.xlsx")) + list(raw_dir.glob("*client*.csv"))
-        
+
         census_file = census_files[0] if census_files else None
         client_file = client_files[0] if client_files else None
-        
+
         if census_file:
             print(f"Found census file: {census_file}")
         if client_file:
             print(f"Found client file: {client_file}")
-            
-        census_customer_check(str(census_file) if census_file else None, 
-                            str(client_file) if client_file else None, 
+
+        census_customer_check(str(census_file) if census_file else None,
+                            str(client_file) if client_file else None,
                             config)
-        
+
         # Step 4: Generate whitespace tessellation
         print("\n=== Step 4: Generating whitespace tessellation ===")
         generate_whitespace_tessellation(config)
-        
-        print("\n=== Initialization completed successfully! ===")
-        print("You can now run the main RTM analysis using: python runner.py")
-        
-    else:
-        print("No area JSON file found in raw directory")
-        print("Please ensure you have a file with 'area' in the name in the raw directory")
 
-if __name__ == "__main__":
-    main()
+        print("\n=== Initialization completed successfully! ===")
+        if area_name == "all":
+            print("All areas are ready for RTM analysis")
+        else:
+            print(f"Area {area_name} is ready for RTM analysis")
+
+    except Exception as e:
+        print(f"Error during initialization for {area_name}: {e}")
+        raise
+
+
+def run_global_initialization(config: dict):
+    """
+    Run initialization for all areas at once (efficient for batch processing).
+
+    Args:
+        config: Configuration dictionary
+    """
+    company = config["analysis"]["company"]
+    country = config["analysis"]["country"]
+
+    print(f"Running global initialization for {company.upper()} - {country.upper()}")
+    print(f"Data directory: {config['paths']['data']}")
+    print(f"Raw directory: {config['paths']['raw']}")
+
+    try:
+        # Get raw data directory
+        raw_dir = Path(config["paths"]["raw"])
+        raw_dir.mkdir(parents=True, exist_ok=True)
+
+        # Look for area JSON file in raw directory
+        area_json_files = list(raw_dir.glob("*area*.json"))
+        if not area_json_files:
+            print("No area JSON file found in raw directory")
+            return False
+
+        area_json_file = area_json_files[0]  # Take the first one found
+        print(f"Found area JSON file: {area_json_file}")
+
+        # Step 1: Create KML files from JSON for all areas
+        print("\n=== Step 1: Creating KML files from JSON for all areas ===")
+        make_kml_from_json(str(area_json_file), config)
+
+        # Step 2: Extract SEC data for all areas
+        print("\n=== Step 2: Extracting SEC data for all areas ===")
+        sec_files = list(raw_dir.glob("*sec*.kml")) + list(raw_dir.glob("*SEC*.kml"))
+        if sec_files:
+            sec_file = sec_files[0]
+            print(f"Found SEC file: {sec_file}")
+            sec_extraction(str(sec_file), config)
+        else:
+            print("No SEC file found in raw directory")
+
+        # Step 3: Process census and client data for all areas
+        print("\n=== Step 3: Processing census and client data for all areas ===")
+        census_files = list(raw_dir.glob("*census*.csv")) + list(raw_dir.glob("*CENSUS*.csv"))
+        client_files = list(raw_dir.glob("*client*.xlsx")) + list(raw_dir.glob("*client*.csv"))
+
+        census_file = census_files[0] if census_files else None
+        client_file = client_files[0] if client_files else None
+
+        if census_file:
+            print(f"Found census file: {census_file}")
+        if client_file:
+            print(f"Found client file: {client_file}")
+
+        census_customer_check(str(census_file) if census_file else None,
+                            str(client_file) if client_file else None,
+                            config)
+
+        # Step 4: Generate whitespace tessellation for all areas
+        print("\n=== Step 4: Generating whitespace tessellation for all areas ===")
+        generate_whitespace_tessellation(config)
+
+        print("\n=== Global initialization completed successfully! ===")
+        return True
+
+    except Exception as e:
+        print(f"Error during global initialization: {e}")
+        return False

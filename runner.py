@@ -1,64 +1,183 @@
-from configparser import ConfigParser
+import multiprocessing as mp
+import subprocess
+import sys
 from pathlib import Path
-import subprocess, sys
-# import json, pickle
-from mymodules.utils import *
-
 import yaml
 
+from mymodules.utils import replace_placeholders
+from src.init_process import run_initialization, run_global_initialization
 
-# base directory
-BASE_DIR = Path(__file__).parent.resolve()
 
-with open("config.yaml", "r") as yf:
-    config = yaml.safe_load(yf)
+def run_rtm_analysis_wrapper(area_name: str, config: dict, logs_dir: Path):
+    """
+    Wrapper function for multiprocessing - runs RTM analysis only (no initialization).
+    """
+    # Update config for this specific area
+    area_config = config.copy()
+    area_config["analysis"]["area"] = area_name
+    config_yaml = yaml.dump(area_config, default_flow_style=False)
 
-# just to add collect script available on path
-# sys.path.append(Path(config["paths"]["mymodules"]).resolve())
-# from mymodules.myscripts import collect
+    return run_rtm_analysis(config_yaml, area_name, logs_dir)
 
-# reading config from yaml
-company = config["analysis"]["company"]
-country = config["analysis"]["country"]
-area_name = config["analysis"]["area"]
 
-config['paths'] = replace_placeholders(config['paths'], company, country)
+def run_rtm_analysis(config_yaml: str, area_name: str, logs_dir: Path):
+    """
+    Run RTM analysis for a specific area.
+    
+    Args:
+        config_yaml: YAML configuration as string
+        area_name: Name of the area to process
+        logs_dir: Directory to save logs
+    """
+    print(f"\nStarting RTM analysis for {area_name.capitalize()}")
+    
+    with open(logs_dir / f"{area_name}_analysis_logs.txt", "w") as log_file:
+        sub_process = subprocess.run(
+            ["python", "rtm_analysis.py", config_yaml], 
+            stdout=log_file, 
+            stderr=subprocess.STDOUT,
+            universal_newlines=True
+        )
+    
+    print(f"Finished RTM analysis for {area_name.capitalize()}\n")
+    return sub_process.returncode
 
-# logs folder
-logs_dir = Path(config["paths"]["logs"]).resolve()
-logs_dir.mkdir(parents=True, exist_ok=True)
 
-if area_name == "all":
-    data_directory = Path(config["paths"]['data'])
-    exclude_cities = config["analysis"]["exclude"]
-
-    for _id in data_directory.glob("**/boundary.kml"):
-        area_name = _id.parent.parent.name
-
-        if area_name in exclude_cities:
-            continue
-        # changing this, because this config will be passed to subprocess
-        config["analysis"]["area"] = area_name
+def process_area(area_name: str, config: dict, logs_dir: Path):
+    """
+    Process a single area through initialization and analysis.
+    
+    Args:
+        area_name: Name of the area to process
+        config: Configuration dictionary
+        logs_dir: Directory to save logs
+    """
+    try:
+        # Update config for this specific area
+        area_config = config.copy()
+        area_config["analysis"]["area"] = area_name
+        config_yaml = yaml.dump(area_config, default_flow_style=False)
         
-        config_yaml = yaml.dump(config, default_flow_style=False)
+        print(f"Processing area: {area_name}")
+        
+        # Step 1: Run initialization process
+        print(f"Running initialization for {area_name}...")
+        with open(logs_dir / f"{area_name}_init_logs.txt", "w") as log_file:
+            # Capture initialization output
+            import io
+            from contextlib import redirect_stdout, redirect_stderr
+            
+            init_output = io.StringIO()
+            with redirect_stdout(init_output), redirect_stderr(init_output):
+                try:
+                    run_initialization(config_yaml)
+                    init_success = True
+                except Exception as e:
+                    print(f"Initialization failed for {area_name}: {e}", file=init_output)
+                    init_success = False
+            
+            log_file.write(init_output.getvalue())
+        
+        if not init_success:
+            print(f"Initialization failed for {area_name}, skipping analysis")
+            return 1
+        
+        # Step 2: Run RTM analysis
+        print(f"Running RTM analysis for {area_name}...")
+        analysis_result = run_rtm_analysis(config_yaml, area_name, logs_dir)
+        
+        return analysis_result
+        
+    except Exception as e:
+        print(f"Error processing area {area_name}: {e}")
+        return 1
 
-        # starting a subprocess to run the stockouts
-        print(area_name)
-        print(f"\nStarting analysis for {area_name.capitalize()}")
 
-        with open(logs_dir/f"{area_name}_logs.txt", "w") as log_file:
-            sub_process = subprocess.run(["python", "rtm_analysis.py", config_yaml], stdout=log_file, universal_newlines=True)
+def main():
+    """
+    Main function to run RTM analysis with multiprocessing support.
+    """
+    # Load configuration
+    with open("config.yaml", "r") as yf:
+        config = yaml.safe_load(yf)
+    
+    # Replace placeholders in config paths
+    company = config["analysis"]["company"]
+    country = config["analysis"]["country"]
+    config['paths'] = replace_placeholders(config['paths'], company, country)
+    
+    area_name = config["analysis"]["area"]
+    
+    # Create logs directory
+    logs_dir = Path(config["paths"]["logs"]).resolve()
+    logs_dir.mkdir(parents=True, exist_ok=True)
+    
+    print(f"Starting RTM process for {company.upper()} - {country.upper()}")
+    print(f"Data directory: {config['paths']['data']}")
+    print(f"Logs directory: {logs_dir}")
+    
+    if area_name == "all":
+        # Process all areas - First run global initialization to create all boundary KMLs, SEC, customer data, and whitespace
+        print("Running global initialization to create boundary KML files, process customer data, and generate whitespace...")
 
-        print(f"Finished analysis for {area_name.capitalize()}\n")
-else: 
-    data_directory = Path(config["paths"]['data'])
+        try:
+            init_success = run_global_initialization(config)
 
-    config_yaml = yaml.dump(config, default_flow_style=False)
+            if not init_success:
+                print("Global initialization failed, cannot proceed")
+                return
 
-    # starting a subprocess to run the stockouts
-    print(f"\nStarting analysis for {area_name.capitalize()}")
+        except Exception as e:
+            print(f"Error during global initialization: {e}")
+            return
 
-    with open(logs_dir/f"{area_name}_logs.txt", "w") as log_file:
-        sub_process = subprocess.run(["python", "rtm_analysis.py", config_yaml], stdout=log_file, universal_newlines=True)
+        print("Global initialization completed. Discovering areas...")
 
-    print(f"Finished analysis for {area_name.capitalize()}\n")
+        # Now find all areas with boundary KML files that were just created
+        data_directory = Path(config["paths"]['data'])
+        exclude_cities = config["analysis"]["exclude"]
+
+        areas = []
+        for boundary_file in data_directory.glob("**/boundary.kml"):
+            area_name = boundary_file.parent.parent.name
+            if area_name not in exclude_cities:
+                areas.append(area_name)
+
+        print(f"Found {len(areas)} areas to process: {areas}")
+
+        if not areas:
+            print("No areas found to process after initialization")
+            return
+
+        # Use multiprocessing to process areas (analysis only, since init is done)
+        max_processes = min(8, len(areas))
+        print(f"Using {max_processes} processes for parallel analysis")
+
+        with mp.Pool(processes=max_processes) as pool:
+            # Create tasks for each area (analysis only)
+            tasks = [(area, config, logs_dir) for area in areas]
+
+            # Process areas in parallel
+            results = pool.starmap(run_rtm_analysis_wrapper, tasks)
+
+        # Report results
+        successful = sum(1 for result in results if result == 0)
+        failed = len(results) - successful
+
+        print("\n=== Processing Complete ===")
+        print(f"Successfully processed: {successful} areas")
+        print(f"Failed: {failed} areas")
+        
+    else:
+        # Process single area
+        print(f"Processing single area: {area_name}")
+        result = process_area(area_name, config, logs_dir)
+        
+        if result == 0:
+            print(f"Successfully processed area: {area_name}")
+        else:
+            print(f"Failed to process area: {area_name}")
+
+
+if __name__ == "__main__":
+    main()
